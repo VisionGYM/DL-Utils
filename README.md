@@ -1,1 +1,2 @@
-# DL-Utils
+# dl-utils
+utilities for deep learning
