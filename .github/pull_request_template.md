@@ -8,4 +8,4 @@
 - [ ] flake8, isort, black linting
 - [ ] 추가된 함수 및 클래스에 docstring 달기
 - [ ] 인수에 타입 힌트 넣기
-- [ ] 코드 동작 확
+- [ ] 코드 동작 확인
