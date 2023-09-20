@@ -14,10 +14,10 @@ from gerror import Error
 from datetime import datetime
 
 MEDIA_TYPE = {
-    "txt" : "text/plain",
-    "jpg" : "image/jpeg", 
-    "jpeg" : "image/jpeg",
-    "png" : "image/png"
+    "txt": "text/plain",
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "png": "image/png"
 }
 
 SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly',
@@ -51,10 +51,10 @@ class File:
 
     def get_media(self, name: str) -> str:
         '''
-        파일이름의 확장자를 기반으로 해당 파일이 어떤 MEDIA TYPE을 지니는지 반환한다. 
-        @param  : 파일의 이름 
-        @return : 미디어 타입 
-        '''
+        파일이름의 확장자를 기반으로 해당 파일이 어떤 MEDIA TYPE을 지니는지 반환한다.
+        @param  : 파일의 이름
+        @return : 미디어 타입
+        '''=
         ex = name.split('.')[-1]
         if ex in MEDIA_TYPE:
             return MEDIA_TYPE[ex]
@@ -64,8 +64,8 @@ class File:
 
 def parse_directory(path: str, folder: Folder):
     '''
-    사용자가 업로드하려는 디렉터리를 Folder Class와 File Class에 맞게 구조화 한다. 
-    구조화한 값들은 인자로 주어진 folder에 저장된다. 
+    사용자가 업로드하려는 디렉터리를 Folder Class와 File Class에 맞게 구조화 한다.
+    구조화한 값들은 인자로 주어진 folder에 저장된다.
 
     @param : 디렉터리와 파일이 Tree구조를 이루기 위해 담겨질 최상위 디렉터리(Folder)
     '''
@@ -88,19 +88,19 @@ def parse_directory(path: str, folder: Folder):
 def check_platform() -> bool:
     '''
     해당 모듈을 사용할 수 있는 확인하는 함수
-    @return : 사용가능, 불가능을 boolean 형태로 반환한다. 
+    @return : 사용가능, 불가능을 boolean 형태로 반환한다.
     '''
     os_name = platform.system()
     if os_name in ['Windows', 'Linux', 'Darwin']:
         return True
     else:
         return False
-    
+
 
 def load_platform_ch() -> str:
     '''
-    플랫폼마다 파일경로에 추가되는 특수문자가 다르기에 플랫폼에 맞게 반환 
-    @return : 플랫폼에 해당하는 특수문자 
+    플랫폼마다 파일경로에 추가되는 특수문자가 다르기에 플랫폼에 맞게 반환
+    @return : 플랫폼에 해당하는 특수문자
     '''
     os_name = platform.system()
     if os_name == 'Windows':
@@ -112,10 +112,10 @@ def load_platform_ch() -> str:
 
 def create_unique_folder_name() -> str:
     '''
-    구글드라이브에 업로드할 때 만들어질 최상위 폴더의 이름 
+    구글드라이브에 업로드할 때 만들어질 최상위 폴더의 이름
     날짜와 시간을 기반으로 만든다.
 
-    @return : 최상위 폴더의 이름을 문자열 형태로 반환한다. 
+    @return : 최상위 폴더의 이름을 문자열 형태로 반환한다.
     '''
     now = datetime.now()
     now_str = now.strftime("[%Y-%M-%D]-[%H:%M:%S]")
@@ -124,7 +124,7 @@ def create_unique_folder_name() -> str:
 
 class Gdrive:
     '''
-    구글 드라이브에 사용자가 요청한 디렉터리 구조를 올리기 위한 클래스 
+    구글 드라이브에 사용자가 요청한 디렉터리 구조를 올리기 위한 클래스
     구글 드라이브 API가 내장된 메소드 포함
 
     사용 API (create)
@@ -143,92 +143,91 @@ class Gdrive:
             else:
                 flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
                 self.creds = flow.run_local_server(port=0)
-                
+
             with open('token.json', 'w') as token:
                 token.write(self.creds.to_json())
-    
 
     def create_folder(self, top_folder: Folder, folder: Folder) -> Error:
         '''
         인자로 주어진 top_folder에 요청한 빈 폴더를 생성을 요청하는 함수
-        @return : 성공여부에 해당하는 Error 값을 반환한다. 
+        @return : 성공여부에 해당하는 Error 값을 반환한다.
         '''
         try:
             service = build('drive', 'v3', credentials=self.creds)
             metadata = {
-                'name' : folder.name,
+                'name': folder.name,
                 'mimeType': 'application/vnd.google-apps.folder',
-                'parents' : [top_folder.folder_id]
+                'parents': [top_folder.folder_id]
             }
 
-            result = service.files().create(body=metadata, fields='id').execute()
+            result = service.files().create(body=metadata,
+                                            fields='id').execute()
             folder.folder_id = result.get("id")
             return Error.NONE
 
-        except HttpError as error:
+        except HttpError:
             return Error.HTTP_ERROR
-
 
     def create_root_folder(self, root: Folder) -> Error:
         '''
-        구글드라이브에 사용자가 요청한 디렉터리 구조를 업로드하기 위한 최상위 폴더를 생성한다. 
-        @return : 성공여부에 해당하는 Error 값을 반환한다. 
+        구글드라이브에 사용자가 요청한 디렉터리 구조를 업로드하기 위한 최상위 폴더를 생성한다.
+        @return : 성공여부에 해당하는 Error 값을 반환한다.
         '''
         try:
             service = build('drive', 'v3', credentials=self.creds)
             metadata = {
-                'name' : root.name,
+                'name': root.name,
                 'mimeType': 'application/vnd.google-apps.folder'
             }
 
-            result = service.files().create(body=metadata, fields='id').execute()
+            result = service.files().create(body=metadata,
+                                            fields='id').execute()
             root.folder_id = result.get("id")
             return Error.NONE
 
-        except HttpError as error:
+        except HttpError:
             return Error.HTTP_ERROR
-    
 
     def create_file(self, top_folder: Folder, file: File) -> Error:
         '''
         인자로 주어진 top_folder에 요청한 파일일 미디어타입에 맞게 업로드를 진행한다.
-        @return : 성공여부에 해당하는 Error 값을 반환한다. 
+        @return : 성공여부에 해당하는 Error 값을 반환한다.
         '''
         try:
             service = build('drive', 'v3', credentials=self.creds)
             metadata = {
-                'name' : file.name,
-                'parents' : [top_folder.folder_id]
+                'name': file.name,
+                'parents': [top_folder.folder_id]
             }
 
             media = MediaFileUpload(file.path, file.media_type)
 
-            result = service.files().create(body=metadata, fields='id', media_body=media ).execute()
+            result = service.files().create(body=metadata,
+                                            fields='id',
+                                            media_body=media).execute()
             file.file_id = result.get("id")
             return Error.NONE
 
-        except HttpError as error:
+        except HttpError:
             return Error.HTTP_ERROR
-        
 
     def upload(self, req_path: str) -> Error:
         '''
-        구글드라이브에 업로드 하기 위한 모듈의 최초 Entry 메소드 
-        @return : 성공여부에 해당하는 Error 값을 반환한다. 
+        구글드라이브에 업로드 하기 위한 모듈의 최초 Entry 메소드
+        @return : 성공여부에 해당하는 Error 값을 반환한다.
         '''
-        if check_platform() == False:
+        if not check_platform():
             return Error.NOT_SUPPORTED_PLATFORM
-        
+
         parse_directory(req_path, self.root_folder)
         err = self.upload_recursive_dir(self.root_folder)
 
         return err
 
-
     def upload_recursive_dir(self, top_folder: Folder) -> Error:
         '''
-        파싱한 디렉토리 구조를 재귀적으로 탐사하여 구글 API를 요청하는 메소드 
-        @return : 성공여부에 해당하는 Error 값을 반환한다. 
+        파싱한 디렉토리 구조를 재귀적으로 탐사하여 구글 API를 요청하는 메소드
+        @return : 성공여부에 해당하는 Error 값을 반환한다.
         '''
         if top_folder.is_root:
             err = self.create_root_folder(top_folder)
@@ -240,12 +239,12 @@ class Gdrive:
                 err = self.create_folder(top_folder, file)
                 if err != Error.NONE:
                     return err
-                
+
                 self.upload_recursive_dir(file)
 
             else:
                 err = self.create_file(top_folder, file)
                 if err != Error.NONE:
                     return err
-                
+
         return Error.NONE
