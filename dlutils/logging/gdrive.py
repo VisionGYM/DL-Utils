@@ -1,2 +1,0 @@
-class Gdrive:
-    pass
