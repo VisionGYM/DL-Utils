@@ -66,27 +66,40 @@ class File:
             return MEDIA_TYPE["txt"]
 
 
-def parse_directory(path: str, folder: Folder):
+def parse_directory(path: str, folder: Folder) -> Error:
     """
     사용자가 업로드하려는 디렉터리를 Folder Class와 File Class에 맞게 구조화 한다.
     구조화한 값들은 인자로 주어진 folder에 저장된다.
 
     @param : 디렉터리와 파일이 Tree구조를 이루기 위해 담겨질 최상위 디렉터리(Folder)
+    @return : 성공여부에 해당하는 Error 값을 반환한다.
     """
-    files = os.listdir(path)
-    path_ch = load_platform_ch()
+    try:
+        files = os.listdir(path)
 
-    for file in files:
-        absulute_path = path + path_ch + file
+        path_ch = load_platform_ch()
 
-        if os.path.isdir(absulute_path):
-            f = Folder(file, absulute_path, False)
-            folder.files.append(f)
-            parse_directory(absulute_path, f)
+        for file in files:
+            absulute_path = path + path_ch + file
 
-        else:
-            f = File(file, absulute_path)
-            folder.files.append(f)
+            if os.path.isdir(absulute_path):
+                f = Folder(file, absulute_path, False)
+                folder.files.append(f)
+                parse_directory(absulute_path, f)
+
+            else:
+                f = File(file, absulute_path)
+                folder.files.append(f)
+        return Error.NONE
+
+    except FileNotFoundError:
+        return Error.FILE_NOT_FOUND
+    except PermissionError:
+        return Error.NOT_PERMISSION
+    except NotADirectoryError:
+        return Error.NOT_DIRECTORY
+    except Exception:
+        return Error.UNKNOWN_ERROR
 
 
 def check_platform() -> bool:
@@ -222,7 +235,10 @@ class Gdrive:
         if not check_platform():
             return Error.NOT_SUPPORTED_PLATFORM
 
-        parse_directory(req_path, self.root_folder)
+        err = parse_directory(req_path, self.root_folder)
+        if err != Error.NONE:
+            return err
+
         err = self.upload_recursive_dir(self.root_folder)
 
         return err
