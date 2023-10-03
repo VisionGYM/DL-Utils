@@ -13,13 +13,6 @@ from googleapiclient.http import MediaFileUpload
 
 from gerror import Error
 
-MEDIA_TYPE = {
-    "txt": "text/plain",
-    "jpg": "image/jpeg",
-    "jpeg": "image/jpeg",
-    "png": "image/png",
-}
-
 SCOPES = [
     "https://www.googleapis.com/auth/drive.metadata.readonly",
     "https://www.googleapis.com/auth/drive.file",
@@ -28,8 +21,20 @@ SCOPES = [
 
 
 class Folder:
-    """
-    사용자가 업로드하려는 디렉터리의 서브 디렉터리구조
+    """Manage down subfolders and subfiles.
+
+    Args:
+        name (str): Folder name for to be uploaded google drive.
+        path (str): Local absolute path of folder.
+        is_root (bool): Value to check if folder is top level folder.
+
+    Attributes:
+        is_root (str): Value to check if folder is top level folder.
+        name (int): Folder name for to be uploaded google drive.
+        path (str): Local absolute path of folder.
+        files (list): Include subfolders and subfiles.
+        is_dir (bool): Value to check if this object is directory or file.
+        folder_id (str): Id of the uploaded folder.
     """
 
     def __init__(self, name: str, path: str, is_root: bool):
@@ -42,37 +47,38 @@ class Folder:
 
 
 class File:
-    """
-    사용자가 업로드하려는 디렉터리내에 포함된 파일구조
+    """Manage file structure.
+
+    Args:
+        name (str): File name for to be uploaded google drive.
+        path (str): Local absolute path of file.
+
+    Attributes:
+        name (int): File name for to be uploaded google drive.
+        path (str): Local absolute path of file.
+        is_dir (bool): Value to check if this object is directory or file.
+        media_type (MediaFileUpload): media of file.
+        file_id (str): Id of the uploaded file.
     """
 
     def __init__(self, name: str, path: str):
         self.name = name
         self.path = path
         self.is_dir = False
-        self.media_type = self.get_media(name)
+        self.media_type = "text/plain"
         self.file_id = ""
-
-    def get_media(self, name: str) -> str:
-        """
-        파일이름의 확장자를 기반으로 해당 파일이 어떤 MEDIA TYPE을 지니는지 반환한다.
-        @param  : 파일의 이름
-        @return : 미디어 타입
-        """
-        ex = name.split(".")[-1]
-        if ex in MEDIA_TYPE:
-            return MEDIA_TYPE[ex]
-        else:
-            return MEDIA_TYPE["txt"]
 
 
 def parse_directory(path: str, folder: Folder) -> Error:
-    """
-    사용자가 업로드하려는 디렉터리를 Folder Class와 File Class에 맞게 구조화 한다.
-    구조화한 값들은 인자로 주어진 folder에 저장된다.
+    """Parse requested path to create Tree structure.
 
-    @param : 디렉터리와 파일이 Tree구조를 이루기 위해 담겨질 최상위 디렉터리(Folder)
-    @return : 성공여부에 해당하는 Error 값을 반환한다.
+    Args:
+        path (str): local absolute path for requested.
+        folder (Folder): top level folder object.
+
+    Returns:
+        A `Error Code` of type `Error`.
+
     """
     try:
         files = os.listdir(path)
@@ -103,9 +109,11 @@ def parse_directory(path: str, folder: Folder) -> Error:
 
 
 def check_platform() -> bool:
-    """
-    해당 모듈을 사용할 수 있는 확인하는 함수
-    @return : 사용가능, 불가능을 boolean 형태로 반환한다.
+    """Check if the platform is available.
+
+    Returns:
+        The return value. True for success, False otherwise.
+
     """
     os_name = platform.system()
     if os_name in ["Windows", "Linux", "Darwin"]:
@@ -115,9 +123,11 @@ def check_platform() -> bool:
 
 
 def load_platform_ch() -> str:
-    """
-    플랫폼마다 파일경로에 추가되는 특수문자가 다르기에 플랫폼에 맞게 반환
-    @return : 플랫폼에 해당하는 특수문자
+    """Load Forward Slash or Back Slash according to platform
+
+    Returns:
+        The return value. '\\' for Windows, '/' for Linux or OSX.
+
     """
     os_name = platform.system()
     if os_name == "Windows":
@@ -128,23 +138,23 @@ def load_platform_ch() -> str:
 
 
 def create_unique_folder_name() -> str:
-    """
-    구글드라이브에 업로드할 때 만들어질 최상위 폴더의 이름
-    날짜와 시간을 기반으로 만든다.
+    """Name of the top level folder to be created when uploading to Google Drive.
 
-    @return : 최상위 폴더의 이름을 문자열 형태로 반환한다.
+    Returns:
+        A `top level folder name` of type `str`.
+
     """
     now = datetime.now()
     now_str = now.strftime("[%Y-%M-%D]-[%H:%M:%S]")
-    return f"DL-UTIL-RESULT-{now_str}"
+    return f"RESULT-{now_str}"
 
 
 class Gdrive:
-    """
-    구글 드라이브에 사용자가 요청한 디렉터리 구조를 올리기 위한 클래스
-    구글 드라이브 API가 내장된 메소드 포함
+    """Upload request path to Google Drive.
 
-    사용 API (create)
+    Attributes:
+        creds (Credentials): Credentials value for Google Drive.
+        root_folder(Folder): Top level folder object to contain for subfolders and subfiles.
     """
 
     def __init__(self):
@@ -166,17 +176,23 @@ class Gdrive:
             with open("token.json", "w") as token:
                 token.write(self.creds.to_json())
 
-    def create_folder(self, top_folder: Folder, folder: Folder) -> Error:
-        """
-        인자로 주어진 top_folder에 요청한 빈 폴더를 생성을 요청하는 함수
-        @return : 성공여부에 해당하는 Error 값을 반환한다.
+    def create_folder(self, parent_folder: Folder, folder: Folder) -> Error:
+        """Create empty folder in parent folder.
+
+        Args:
+            parent_folder (Folder): parent folder you want to upload.
+            folder (Folder): want to create folder object.
+
+        Returns:
+            A `Error Code` of type `Error`.
+
         """
         try:
             service = build("drive", "v3", credentials=self.creds)
             metadata = {
                 "name": folder.name,
                 "mimeType": "application/vnd.google-apps.folder",
-                "parents": [top_folder.folder_id],
+                "parents": [parent_folder.folder_id],
             }
 
             result = service.files().create(body=metadata, fields="id").execute()
@@ -187,9 +203,14 @@ class Gdrive:
             return Error.HTTP_ERROR
 
     def create_root_folder(self, root: Folder) -> Error:
-        """
-        구글드라이브에 사용자가 요청한 디렉터리 구조를 업로드하기 위한 최상위 폴더를 생성한다.
-        @return : 성공여부에 해당하는 Error 값을 반환한다.
+        """Create empty top level folder in Google Drive.
+
+        Args:
+            root (Folder): top level folder object.
+
+        Returns:
+            A `Error Code` of type `Error`.
+
         """
         try:
             service = build("drive", "v3", credentials=self.creds)
@@ -205,14 +226,20 @@ class Gdrive:
         except HttpError:
             return Error.HTTP_ERROR
 
-    def create_file(self, top_folder: Folder, file: File) -> Error:
-        """
-        인자로 주어진 top_folder에 요청한 파일일 미디어타입에 맞게 업로드를 진행한다.
-        @return : 성공여부에 해당하는 Error 값을 반환한다.
+    def create_file(self, parent_folder: Folder, file: File) -> Error:
+        """upload file in parent folder.
+
+        Args:
+            parent_folder (Folder): parent folder you want to upload.
+            file (File): want to create file object.
+
+        Returns:
+            A `Error Code` of type `Error`.
+
         """
         try:
             service = build("drive", "v3", credentials=self.creds)
-            metadata = {"name": file.name, "parents": [top_folder.folder_id]}
+            metadata = {"name": file.name, "parents": [parent_folder.folder_id]}
 
             media = MediaFileUpload(file.path, file.media_type)
 
@@ -228,9 +255,14 @@ class Gdrive:
             return Error.HTTP_ERROR
 
     def upload(self, req_path: str) -> Error:
-        """
-        구글드라이브에 업로드 하기 위한 모듈의 최초 Entry 메소드
-        @return : 성공여부에 해당하는 Error 값을 반환한다.
+        """Entry Method for upload to Google Drive.
+
+        Args:
+            req_path (str): request path for upload to Google Drive.
+
+        Returns:
+            A `Error Code` of type `Error`.
+
         """
         if not check_platform():
             return Error.NOT_SUPPORTED_PLATFORM
@@ -244,9 +276,14 @@ class Gdrive:
         return err
 
     def upload_recursive_dir(self, top_folder: Folder) -> Error:
-        """
-        파싱한 디렉토리 구조를 재귀적으로 탐사하여 구글 API를 요청하는 메소드
-        @return : 성공여부에 해당하는 Error 값을 반환한다.
+        """Visit recursive directory and request create file or folder according to attribute(is_dir).
+
+        Args:
+            top_folder (Folder): top level folder object.
+
+        Returns:
+            A `Error Code` of type `Error`.
+
         """
         if top_folder.is_root:
             err = self.create_root_folder(top_folder)
@@ -267,3 +304,17 @@ class Gdrive:
                     return err
 
         return Error.NONE
+
+
+def upload_to_drive(path: str):
+    """Entry upload function to upload the requested path.
+
+    Args:
+        path (str): local absolute path for requested.
+
+    Returns:
+        A `Error Code` of type `Error`.
+
+    """
+    g = Gdrive()
+    return g.upload(path)
