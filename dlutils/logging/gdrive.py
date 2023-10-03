@@ -315,6 +315,14 @@ def upload_to_drive(path: str) -> Error:
     Returns:
         A `Error Code` of type `Error`.
 
+    Examples:
+        import gdrive
+        err = gdrive.upload_to_drive(req_path)
+        if err != Error.NONE:
+            pass
+        else:
+            pass
+
     """
     g = Gdrive()
     return g.upload(path)
