@@ -306,7 +306,7 @@ class Gdrive:
         return Error.NONE
 
 
-def upload_to_drive(path: str):
+def upload_to_drive(path: str) -> Error:
     """Entry upload function to upload the requested path.
 
     Args:
