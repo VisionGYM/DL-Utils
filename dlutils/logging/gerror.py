@@ -2,9 +2,7 @@ from enum import Enum
 
 
 class Error(Enum):
-    """
-    에러 값을 상수로 표현한 클래스
-    """
+    """Error Code Enum."""
 
     NONE = 0
     NOT_SUPPORTED_PLATFORM = 1
