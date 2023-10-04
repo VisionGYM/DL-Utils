@@ -5,6 +5,8 @@ import platform
 from datetime import datetime
 
 from gerror import Error
+from gerror import ERROR_STRING
+
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -316,12 +318,14 @@ def upload_to_drive(path: str) -> Error:
 
     Examples:
         import gdrive
-        err = gdrive.upload_to_drive(req_path)
-        if err != Error.NONE:
-            pass
-        else:
-            pass
+        gdrive.upload_to_drive(req_path)
 
     """
-    g = Gdrive()
-    return g.upload(path)
+    try:
+        g = Gdrive()
+        err = g.upload(path)
+        if err != Error.NONE:
+            raise ValueError(ERROR_STRING[err])
+
+    except ValueError as ve:
+        print(f"gdrive.py: {ve}")
